@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using DotNetEnv;
 using FinancialTracker.API.Data;
 using FinancialTracker.API.Extensions;
@@ -6,25 +5,7 @@ using FinancialTracker.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-// In container hosts, .env may not exist; runtime env vars are used instead.
-try
-{
-    Env.Load();
-}
-catch
-{
-    // Ignore missing/invalid .env and continue with host-provided environment variables.
-}
-
-MapEnvIfMissing(
-    "CONNECTIONSTRINGS_DEFAULTCONNECTION",
-    "ConnectionStrings__DefaultConnection",
-    sanitizeConnectionString: true);
-MapEnvIfMissing("JWT_ISSUER", "Jwt__Issuer");
-MapEnvIfMissing("JWT_AUDIENCE", "Jwt__Audience");
-MapEnvIfMissing("JWT_KEY", "Jwt__Key");
-MapEnvIfMissing("JWT_EXPIRYMINUTES", "Jwt__ExpiryMinutes");
-MapEnvIfMissing("CORS_ALLOWEDORIGINS_0", "Cors__AllowedOrigins__0");
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,7 +73,7 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapMethods("/health", new[] { "GET", "OPTIONS" }, () => Results.Ok(new
+app.MapGet("/health", () => Results.Ok(new
 {
     status = "ok",
     service = "FinancialTracker.API",
@@ -101,30 +82,3 @@ app.MapMethods("/health", new[] { "GET", "OPTIONS" }, () => Results.Ok(new
 app.MapControllers();
 
 app.Run();
-
-static void MapEnvIfMissing(string sourceKey, string targetKey, bool sanitizeConnectionString = false)
-{
-    var sourceValue = Environment.GetEnvironmentVariable(sourceKey);
-    var targetValue = Environment.GetEnvironmentVariable(targetKey);
-
-    if (!string.IsNullOrWhiteSpace(sourceValue) && string.IsNullOrWhiteSpace(targetValue))
-    {
-        if (sanitizeConnectionString)
-        {
-            sourceValue = SanitizeConnectionString(sourceValue);
-        }
-
-        Environment.SetEnvironmentVariable(targetKey, sourceValue);
-    }
-}
-
-static string SanitizeConnectionString(string value)
-{
-    // Keep first line only if a host UI accidentally pasted multiple env vars into one field.
-    var firstLine = value.Replace("\r", string.Empty)
-        .Split('\n', StringSplitOptions.RemoveEmptyEntries)[0]
-        .Trim();
-
-    // Remove accidental trailing env assignment fragments (e.g. " ASPNETCORE_ENVIRONMENT=Production").
-    return Regex.Replace(firstLine, @"\s+[A-Z0-9_]+\s*=.*$", string.Empty).Trim();
-}
