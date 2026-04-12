@@ -1,0 +1,14 @@
+using FinancialTracker.API.Entities;
+
+namespace FinancialTracker.API.Features.Transactions.DTOs;
+
+public sealed class UpdateTransactionRequestDto
+{
+    public Guid AccountId { get; set; }
+    public Guid? DestinationAccountId { get; set; }
+    public Guid? CategoryId { get; set; }
+    public decimal Amount { get; set; }
+    public TransactionType Type { get; set; }
+    public DateTime Date { get; set; } = DateTime.UtcNow;
+    public string Description { get; set; } = string.Empty;
+}
