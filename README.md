@@ -2,9 +2,6 @@
 
 Backend API for the Finance Tracker app.
 
-This README is focused on local development only.
-Deployment docs will be added later.
-
 ## What This API Handles
 
 - Authentication (register/login with JWT)
