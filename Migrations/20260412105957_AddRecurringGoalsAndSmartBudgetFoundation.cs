@@ -16,24 +16,24 @@ namespace FinancialTracker.API.Migrations
                 table: "Budgets",
                 type: "char(36)",
                 nullable: true,
-                collation: "ascii_general_ci");
+                collation: "utf8mb4_bin");
 
             migrationBuilder.AddColumn<Guid>(
                 name: "TemplateId",
                 table: "Budgets",
                 type: "char(36)",
                 nullable: true,
-                collation: "ascii_general_ci");
+                collation: "utf8mb4_bin");
 
             migrationBuilder.CreateTable(
                 name: "BudgetRolloverRecords",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    FromBudgetId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
-                    ToBudgetId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    FromBudgetId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "utf8mb4_bin"),
+                    ToBudgetId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     FromYear = table.Column<int>(type: "int", nullable: false),
                     FromMonth = table.Column<int>(type: "int", nullable: false),
                     ToYear = table.Column<int>(type: "int", nullable: false),
@@ -80,9 +80,9 @@ namespace FinancialTracker.API.Migrations
                 name: "BudgetTemplates",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     Name = table.Column<string>(type: "varchar(120)", maxLength: 120, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
@@ -115,11 +115,11 @@ namespace FinancialTracker.API.Migrations
                 name: "RecurringTransactions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    DestinationAccountId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
-                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    DestinationAccountId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "utf8mb4_bin"),
+                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "utf8mb4_bin"),
                     Name = table.Column<string>(type: "varchar(120)", maxLength: 120, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
@@ -171,9 +171,9 @@ namespace FinancialTracker.API.Migrations
                 name: "SavingsGoals",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     Name = table.Column<string>(type: "varchar(120)", maxLength: 120, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
@@ -209,10 +209,10 @@ namespace FinancialTracker.API.Migrations
                 name: "RecurringTransactionExecutions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    RecurringTransactionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    RecurringTransactionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     ScheduledForDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    GeneratedTransactionId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
+                    GeneratedTransactionId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "utf8mb4_bin"),
                     Status = table.Column<int>(type: "int", nullable: false),
                     ErrorMessage = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -242,9 +242,9 @@ namespace FinancialTracker.API.Migrations
                 name: "SavingsGoalContributions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    SavingsGoalId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    TransactionId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    SavingsGoalId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    TransactionId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "utf8mb4_bin"),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     ContributionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Note = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)

@@ -18,7 +18,7 @@ namespace FinancialTracker.API.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     Email = table.Column<string>(type: "varchar(320)", maxLength: 320, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PasswordHash = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
@@ -36,8 +36,8 @@ namespace FinancialTracker.API.Migrations
                 name: "Accounts",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     Name = table.Column<string>(type: "varchar(120)", maxLength: 120, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Balance = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -62,8 +62,8 @@ namespace FinancialTracker.API.Migrations
                 name: "Categories",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     Name = table.Column<string>(type: "varchar(120)", maxLength: 120, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Type = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
@@ -87,9 +87,9 @@ namespace FinancialTracker.API.Migrations
                 name: "Budgets",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
                     Year = table.Column<int>(type: "int", nullable: false),
                     Month = table.Column<int>(type: "int", nullable: false),
                     MonthlyLimit = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -118,11 +118,11 @@ namespace FinancialTracker.API.Migrations
                 name: "Transactions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    DestinationAccountId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
-                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    AccountId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "utf8mb4_bin"),
+                    DestinationAccountId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "utf8mb4_bin"),
+                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "utf8mb4_bin"),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Type = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),

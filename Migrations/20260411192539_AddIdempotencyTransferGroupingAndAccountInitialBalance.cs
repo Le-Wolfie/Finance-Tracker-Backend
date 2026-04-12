@@ -24,7 +24,7 @@ namespace FinancialTracker.API.Migrations
                 table: "Transactions",
                 type: "char(36)",
                 nullable: true,
-                collation: "ascii_general_ci");
+                collation: "utf8mb4_bin");
 
             migrationBuilder.AddColumn<decimal>(
                 name: "InitialBalance",
