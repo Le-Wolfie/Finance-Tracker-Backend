@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using DotNetEnv;
 using FinancialTracker.API.Data;
 using FinancialTracker.API.Extensions;
@@ -15,7 +16,10 @@ catch
     // Ignore missing/invalid .env and continue with host-provided environment variables.
 }
 
-MapEnvIfMissing("CONNECTIONSTRINGS_DEFAULTCONNECTION", "ConnectionStrings__DefaultConnection");
+MapEnvIfMissing(
+    "CONNECTIONSTRINGS_DEFAULTCONNECTION",
+    "ConnectionStrings__DefaultConnection",
+    sanitizeConnectionString: true);
 MapEnvIfMissing("JWT_ISSUER", "Jwt__Issuer");
 MapEnvIfMissing("JWT_AUDIENCE", "Jwt__Audience");
 MapEnvIfMissing("JWT_KEY", "Jwt__Key");
@@ -88,7 +92,7 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGet("/health", () => Results.Ok(new
+app.MapMethods("/health", new[] { "GET", "OPTIONS" }, () => Results.Ok(new
 {
     status = "ok",
     service = "FinancialTracker.API",
@@ -98,13 +102,29 @@ app.MapControllers();
 
 app.Run();
 
-static void MapEnvIfMissing(string sourceKey, string targetKey)
+static void MapEnvIfMissing(string sourceKey, string targetKey, bool sanitizeConnectionString = false)
 {
     var sourceValue = Environment.GetEnvironmentVariable(sourceKey);
     var targetValue = Environment.GetEnvironmentVariable(targetKey);
 
     if (!string.IsNullOrWhiteSpace(sourceValue) && string.IsNullOrWhiteSpace(targetValue))
     {
+        if (sanitizeConnectionString)
+        {
+            sourceValue = SanitizeConnectionString(sourceValue);
+        }
+
         Environment.SetEnvironmentVariable(targetKey, sourceValue);
     }
+}
+
+static string SanitizeConnectionString(string value)
+{
+    // Keep first line only if a host UI accidentally pasted multiple env vars into one field.
+    var firstLine = value.Replace("\r", string.Empty)
+        .Split('\n', StringSplitOptions.RemoveEmptyEntries)[0]
+        .Trim();
+
+    // Remove accidental trailing env assignment fragments (e.g. " ASPNETCORE_ENVIRONMENT=Production").
+    return Regex.Replace(firstLine, @"\s+[A-Z0-9_]+\s*=.*$", string.Empty).Trim();
 }
