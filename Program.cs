@@ -73,6 +73,12 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "ok",
+    service = "FinancialTracker.API",
+    utc = DateTime.UtcNow
+}));
 app.MapControllers();
 
 app.Run();
