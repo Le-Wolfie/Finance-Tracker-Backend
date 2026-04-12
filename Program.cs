@@ -5,7 +5,22 @@ using FinancialTracker.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-Env.Load();
+// In container hosts, .env may not exist; runtime env vars are used instead.
+try
+{
+    Env.Load();
+}
+catch
+{
+    // Ignore missing/invalid .env and continue with host-provided environment variables.
+}
+
+MapEnvIfMissing("CONNECTIONSTRINGS_DEFAULTCONNECTION", "ConnectionStrings__DefaultConnection");
+MapEnvIfMissing("JWT_ISSUER", "Jwt__Issuer");
+MapEnvIfMissing("JWT_AUDIENCE", "Jwt__Audience");
+MapEnvIfMissing("JWT_KEY", "Jwt__Key");
+MapEnvIfMissing("JWT_EXPIRYMINUTES", "Jwt__ExpiryMinutes");
+MapEnvIfMissing("CORS_ALLOWEDORIGINS_0", "Cors__AllowedOrigins__0");
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -82,3 +97,14 @@ app.MapGet("/health", () => Results.Ok(new
 app.MapControllers();
 
 app.Run();
+
+static void MapEnvIfMissing(string sourceKey, string targetKey)
+{
+    var sourceValue = Environment.GetEnvironmentVariable(sourceKey);
+    var targetValue = Environment.GetEnvironmentVariable(targetKey);
+
+    if (!string.IsNullOrWhiteSpace(sourceValue) && string.IsNullOrWhiteSpace(targetValue))
+    {
+        Environment.SetEnvironmentVariable(targetKey, sourceValue);
+    }
+}
