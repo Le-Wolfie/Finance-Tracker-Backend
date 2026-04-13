@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBudgetsService, BudgetsService>();
         services.AddScoped<IReportingService, ReportingService>();
         services.AddHostedService<RecurringTransactionsBackgroundService>();
+        services.AddHostedService<ScheduledTransactionsBackgroundService>();
 
         services.AddFluentValidationAutoValidation(); // Enables automatic validation of incoming models using FluentValidation validators
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());

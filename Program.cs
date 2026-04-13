@@ -5,7 +5,10 @@ using FinancialTracker.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-Env.Load();
+if (File.Exists(".env"))
+{
+    Env.Load();
+}
 
 var builder = WebApplication.CreateBuilder(args);
 

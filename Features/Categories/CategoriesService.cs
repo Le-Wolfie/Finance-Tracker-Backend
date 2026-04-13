@@ -48,4 +48,60 @@ public sealed class CategoriesService : ICategoriesService
             .ProjectToType<CategoryResponseDto>()
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<CategoryResponseDto> UpdateAsync(Guid id, UpdateCategoryRequestDto request, Guid userId, CancellationToken cancellationToken)
+    {
+        var category = await _dbContext.Categories
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Category not found.");
+
+        var normalizedName = request.Name.Trim();
+        var duplicateExists = await _dbContext.Categories
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.Id != id
+                     && x.UserId == userId
+                     && x.Name == normalizedName
+                     && x.Type == request.Type,
+                cancellationToken);
+
+        if (duplicateExists)
+        {
+            throw new BusinessRuleException("Category already exists.");
+        }
+
+        category.Name = normalizedName;
+        category.Type = request.Type;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return category.Adapt<CategoryResponseDto>();
+    }
+
+    public async Task DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken)
+    {
+        var category = await _dbContext.Categories
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken)
+            ?? throw new NotFoundException("Category not found.");
+
+        var isUsedInBudgets = await _dbContext.Budgets
+            .AsNoTracking()
+            .AnyAsync(x => x.UserId == userId && x.CategoryId == id, cancellationToken);
+
+        if (isUsedInBudgets)
+        {
+            throw new BusinessRuleException("Category is in use by budgets and cannot be deleted.");
+        }
+
+        var isUsedInTemplates = await _dbContext.BudgetTemplates
+            .AsNoTracking()
+            .AnyAsync(x => x.UserId == userId && x.CategoryId == id, cancellationToken);
+
+        if (isUsedInTemplates)
+        {
+            throw new BusinessRuleException("Category is in use by budget templates and cannot be deleted.");
+        }
+
+        _dbContext.Categories.Remove(category);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

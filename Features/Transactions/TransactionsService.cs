@@ -42,6 +42,9 @@ public sealed class TransactionsService : ITransactionsService
         {
             return await strategy.ExecuteAsync(async () =>
             {
+                var now = DateTime.UtcNow;
+                var shouldApplyNow = ShouldApplyNow(request.ExecutionMode, request.Date, now);
+
                 var account = await _dbContext.Accounts
                     .FirstOrDefaultAsync(x => x.Id == request.AccountId && x.UserId == userId, cancellationToken)
                     ?? throw new NotFoundException("Account not found.");
@@ -58,47 +61,26 @@ public sealed class TransactionsService : ITransactionsService
                 //^Begins a new database transaction scope to ensure that all operations within this block are atomic
 
                 Account? destinationAccount = null;
-                switch (request.Type)
+
+                if (request.Type == TransactionType.Transfer)
                 {
-                    case TransactionType.Income:
-                        if (category is not null && category.Type != CategoryType.Income)
-                        {
-                            throw new BusinessRuleException("Income transaction requires an income category.");
-                        }
+                    if (!request.DestinationAccountId.HasValue)
+                    {
+                        throw new BusinessRuleException("Destination account is required for transfer.");
+                    }
 
-                        account.Balance += request.Amount;
-                        break;
-                    case TransactionType.Expense:
-                        if (category is not null && category.Type != CategoryType.Expense)
-                        {
-                            throw new BusinessRuleException("Expense transaction requires an expense category.");
-                        }
+                    destinationAccount = await _dbContext.Accounts
+                        .FirstOrDefaultAsync(x => x.Id == request.DestinationAccountId && x.UserId == userId, cancellationToken)
+                        ?? throw new NotFoundException("Destination account not found.");
+                }
 
-                        if (account.Balance < request.Amount)
-                        {
-                            throw new BusinessRuleException("Insufficient account balance.");
-                        }
-
-                        account.Balance -= request.Amount;
-                        break;
-                    case TransactionType.Transfer:
-                        if (!request.DestinationAccountId.HasValue)
-                        {
-                            throw new BusinessRuleException("Destination account is required for transfer.");
-                        }
-
-                        destinationAccount = await _dbContext.Accounts
-                            .FirstOrDefaultAsync(x => x.Id == request.DestinationAccountId && x.UserId == userId, cancellationToken)
-                            ?? throw new NotFoundException("Destination account not found.");
-
-                        if (account.Balance < request.Amount)
-                        {
-                            throw new BusinessRuleException("Insufficient account balance.");
-                        }
-
-                        account.Balance -= request.Amount;
-                        destinationAccount.Balance += request.Amount;
-                        break;
+                if (shouldApplyNow)
+                {
+                    ApplyBalanceEffect(request.Type, account, destinationAccount, request.Amount, category, enforceFunds: true);
+                }
+                else
+                {
+                    ValidateCategoryForType(category, request.Type);
                 }
 
                 var newTransaction = new Transaction
@@ -111,6 +93,9 @@ public sealed class TransactionsService : ITransactionsService
                     CategoryId = request.CategoryId,
                     Amount = request.Amount,
                     Type = request.Type,
+                    ExecutionMode = request.ExecutionMode,
+                    IsBalanceApplied = shouldApplyNow,
+                    BalanceAppliedAt = shouldApplyNow ? now : null,
                     Date = request.Date,
                     Description = request.Description.Trim()
                 };
@@ -153,6 +138,9 @@ public sealed class TransactionsService : ITransactionsService
 
         return await strategy.ExecuteAsync(async () =>
         {
+            var now = DateTime.UtcNow;
+            var shouldApplyNow = ShouldApplyNow(request.ExecutionMode, request.Date, now);
+
             var existing = await _dbContext.Transactions
                 .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken)
                 ?? throw new NotFoundException("Transaction not found.");
@@ -190,73 +178,45 @@ public sealed class TransactionsService : ITransactionsService
                 throw new NotFoundException("Account not found.");
             }
 
+            Account? oldDestinationAccount = null;
+            if (existing.DestinationAccountId.HasValue)
+            {
+                if (!accounts.TryGetValue(existing.DestinationAccountId.Value, out oldDestinationAccount))
+                {
+                    throw new NotFoundException("Destination account not found.");
+                }
+            }
+
             await using var transactionScope = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            // Reverse the old transaction effect first.
-            switch (existing.Type)
+            if (existing.IsBalanceApplied)
             {
-                case TransactionType.Income:
-                    existingSourceAccount.Balance -= existing.Amount;
-                    break;
-                case TransactionType.Expense:
-                    existingSourceAccount.Balance += existing.Amount;
-                    break;
-                case TransactionType.Transfer:
-                    if (!existing.DestinationAccountId.HasValue || !accounts.TryGetValue(existing.DestinationAccountId.Value, out var oldDestination))
-                    {
-                        throw new NotFoundException("Destination account not found.");
-                    }
-
-                    existingSourceAccount.Balance += existing.Amount;
-                    oldDestination.Balance -= existing.Amount;
-                    break;
+                ReverseBalanceEffect(existing.Type, existingSourceAccount, oldDestinationAccount, existing.Amount);
             }
 
             Account? newDestinationAccount = null;
-            switch (request.Type)
+            if (request.Type == TransactionType.Transfer)
             {
-                case TransactionType.Income:
-                    if (newCategory is not null && newCategory.Type != CategoryType.Income)
-                    {
-                        throw new BusinessRuleException("Income transaction requires an income category.");
-                    }
+                if (!request.DestinationAccountId.HasValue)
+                {
+                    throw new BusinessRuleException("Destination account is required for transfer.");
+                }
 
-                    newSourceAccount.Balance += request.Amount;
-                    break;
-                case TransactionType.Expense:
-                    if (newCategory is not null && newCategory.Type != CategoryType.Expense)
-                    {
-                        throw new BusinessRuleException("Expense transaction requires an expense category.");
-                    }
+                if (!accounts.TryGetValue(request.DestinationAccountId.Value, out var resolvedDestination))
+                {
+                    throw new NotFoundException("Destination account not found.");
+                }
 
-                    if (newSourceAccount.Balance < request.Amount)
-                    {
-                        throw new BusinessRuleException("Insufficient account balance.");
-                    }
+                newDestinationAccount = resolvedDestination;
+            }
 
-                    newSourceAccount.Balance -= request.Amount;
-                    break;
-                case TransactionType.Transfer:
-                    if (!request.DestinationAccountId.HasValue)
-                    {
-                        throw new BusinessRuleException("Destination account is required for transfer.");
-                    }
-
-                    if (!accounts.TryGetValue(request.DestinationAccountId.Value, out var resolvedDestination))
-                    {
-                        throw new NotFoundException("Destination account not found.");
-                    }
-
-                    newDestinationAccount = resolvedDestination;
-
-                    if (newSourceAccount.Balance < request.Amount)
-                    {
-                        throw new BusinessRuleException("Insufficient account balance.");
-                    }
-
-                    newSourceAccount.Balance -= request.Amount;
-                    newDestinationAccount.Balance += request.Amount;
-                    break;
+            if (shouldApplyNow)
+            {
+                ApplyBalanceEffect(request.Type, newSourceAccount, newDestinationAccount, request.Amount, newCategory, enforceFunds: true);
+            }
+            else
+            {
+                ValidateCategoryForType(newCategory, request.Type);
             }
 
             existing.AccountId = request.AccountId;
@@ -267,6 +227,9 @@ public sealed class TransactionsService : ITransactionsService
             existing.CategoryId = request.CategoryId;
             existing.Amount = request.Amount;
             existing.Type = request.Type;
+            existing.ExecutionMode = request.ExecutionMode;
+            existing.IsBalanceApplied = shouldApplyNow;
+            existing.BalanceAppliedAt = shouldApplyNow ? now : null;
             existing.Date = request.Date;
             existing.Description = request.Description.Trim();
 
@@ -334,33 +297,80 @@ public sealed class TransactionsService : ITransactionsService
 
             await using var transactionScope = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            switch (existing.Type)
+            if (existing.IsBalanceApplied)
             {
-                case TransactionType.Income:
-                    account.Balance -= existing.Amount;
-                    break;
-                case TransactionType.Expense:
-                    account.Balance += existing.Amount;
-                    break;
-                case TransactionType.Transfer:
-                    if (!existing.DestinationAccountId.HasValue)
-                    {
-                        throw new BusinessRuleException("Transfer transaction is invalid.");
-                    }
-
-                    var destination = await _dbContext.Accounts
+                Account? destination = null;
+                if (existing.DestinationAccountId.HasValue)
+                {
+                    destination = await _dbContext.Accounts
                         .FirstOrDefaultAsync(x => x.Id == existing.DestinationAccountId && x.UserId == userId, cancellationToken)
                         ?? throw new NotFoundException("Destination account not found.");
+                }
 
-                    account.Balance += existing.Amount;
-                    destination.Balance -= existing.Amount;
-                    break;
+                ReverseBalanceEffect(existing.Type, account, destination, existing.Amount);
             }
 
             _dbContext.Transactions.Remove(existing);
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transactionScope.CommitAsync(cancellationToken);
         });
+    }
+
+    public async Task<int> ApplyDueTransactionsAsync(CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var dueTransactions = await _dbContext.Transactions
+            .Where(x => !x.IsBalanceApplied && x.ExecutionMode == TransactionExecutionMode.ApplyOnDate && x.Date <= now)
+            .OrderBy(x => x.Date)
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        var processed = 0;
+        foreach (var transaction in dueTransactions)
+        {
+            try
+            {
+                var sourceAccount = await _dbContext.Accounts
+                    .FirstOrDefaultAsync(x => x.Id == transaction.AccountId && x.UserId == transaction.UserId, cancellationToken)
+                    ?? throw new NotFoundException("Account not found.");
+
+                Account? destinationAccount = null;
+                if (transaction.Type == TransactionType.Transfer)
+                {
+                    if (!transaction.DestinationAccountId.HasValue)
+                    {
+                        throw new BusinessRuleException("Destination account is required for transfer.");
+                    }
+
+                    destinationAccount = await _dbContext.Accounts
+                        .FirstOrDefaultAsync(x => x.Id == transaction.DestinationAccountId && x.UserId == transaction.UserId, cancellationToken)
+                        ?? throw new NotFoundException("Destination account not found.");
+                }
+
+                Category? category = null;
+                if (transaction.CategoryId.HasValue)
+                {
+                    category = await _dbContext.Categories
+                        .FirstOrDefaultAsync(x => x.Id == transaction.CategoryId && x.UserId == transaction.UserId, cancellationToken);
+                }
+
+                await using var scope = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                ApplyBalanceEffect(transaction.Type, sourceAccount, destinationAccount, transaction.Amount, category, enforceFunds: true);
+
+                transaction.IsBalanceApplied = true;
+                transaction.BalanceAppliedAt = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await scope.CommitAsync(cancellationToken);
+
+                processed++;
+            }
+            catch
+            {
+                // Leave transaction pending and retry in the next cycle.
+            }
+        }
+
+        return processed;
     }
 
     private static bool IsDuplicateIdempotencyKeyViolation(DbUpdateException exception)
@@ -370,5 +380,94 @@ public sealed class TransactionsService : ITransactionsService
         return message.Contains("IX_Transactions_UserId_IdempotencyKey", StringComparison.OrdinalIgnoreCase)
             || message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase)
                 && message.Contains("IdempotencyKey", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool ShouldApplyNow(TransactionExecutionMode executionMode, DateTime transactionDate, DateTime now)
+    {
+        return executionMode == TransactionExecutionMode.ApplyImmediately || transactionDate <= now;
+    }
+
+    private static void ValidateCategoryForType(Category? category, TransactionType type)
+    {
+        if (category is null)
+        {
+            return;
+        }
+
+        if (type == TransactionType.Income && category.Type != CategoryType.Income)
+        {
+            throw new BusinessRuleException("Income transaction requires an income category.");
+        }
+
+        if (type == TransactionType.Expense && category.Type != CategoryType.Expense)
+        {
+            throw new BusinessRuleException("Expense transaction requires an expense category.");
+        }
+    }
+
+    private static void ApplyBalanceEffect(
+        TransactionType type,
+        Account sourceAccount,
+        Account? destinationAccount,
+        decimal amount,
+        Category? category,
+        bool enforceFunds)
+    {
+        ValidateCategoryForType(category, type);
+
+        switch (type)
+        {
+            case TransactionType.Income:
+                sourceAccount.Balance += amount;
+                break;
+            case TransactionType.Expense:
+                if (enforceFunds && sourceAccount.Balance < amount)
+                {
+                    throw new BusinessRuleException("Insufficient account balance.");
+                }
+
+                sourceAccount.Balance -= amount;
+                break;
+            case TransactionType.Transfer:
+                if (destinationAccount is null)
+                {
+                    throw new BusinessRuleException("Destination account is required for transfer.");
+                }
+
+                if (enforceFunds && sourceAccount.Balance < amount)
+                {
+                    throw new BusinessRuleException("Insufficient account balance.");
+                }
+
+                sourceAccount.Balance -= amount;
+                destinationAccount.Balance += amount;
+                break;
+        }
+    }
+
+    private static void ReverseBalanceEffect(
+        TransactionType type,
+        Account sourceAccount,
+        Account? destinationAccount,
+        decimal amount)
+    {
+        switch (type)
+        {
+            case TransactionType.Income:
+                sourceAccount.Balance -= amount;
+                break;
+            case TransactionType.Expense:
+                sourceAccount.Balance += amount;
+                break;
+            case TransactionType.Transfer:
+                if (destinationAccount is null)
+                {
+                    throw new BusinessRuleException("Transfer transaction is invalid.");
+                }
+
+                sourceAccount.Balance += amount;
+                destinationAccount.Balance -= amount;
+                break;
+        }
     }
 }

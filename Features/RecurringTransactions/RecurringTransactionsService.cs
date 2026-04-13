@@ -103,6 +103,10 @@ public sealed class RecurringTransactionsService : IRecurringTransactionsService
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken)
             ?? throw new NotFoundException("Recurring transaction not found.");
 
+        var scheduleChanged = recurring.StartDate != request.StartDate
+            || recurring.Frequency != request.Frequency
+            || recurring.IntervalDays != request.IntervalDays;
+
         recurring.AccountId = request.AccountId;
         recurring.DestinationAccountId = request.DestinationAccountId;
         recurring.CategoryId = request.CategoryId;
@@ -115,7 +119,18 @@ public sealed class RecurringTransactionsService : IRecurringTransactionsService
         recurring.StartDate = request.StartDate;
         recurring.EndDate = request.EndDate;
         recurring.MaxOccurrences = request.MaxOccurrences;
-        recurring.NextExecutionDate = request.NextExecutionDate;
+
+        if (request.IsActive && scheduleChanged)
+        {
+            recurring.NextExecutionDate = request.StartDate <= DateTime.UtcNow
+                ? DateTime.UtcNow
+                : request.StartDate;
+        }
+        else
+        {
+            recurring.NextExecutionDate = request.NextExecutionDate;
+        }
+
         recurring.IsActive = request.IsActive;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
