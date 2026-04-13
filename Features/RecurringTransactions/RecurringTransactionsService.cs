@@ -279,7 +279,7 @@ public sealed class RecurringTransactionsService : IRecurringTransactionsService
                 Amount = recurring.Amount,
                 Type = recurring.Type,
                 Date = scheduledFor,
-                Description = recurring.Description
+                Description = recurring.Name
             };
 
             var idempotencyKey = $"recurring:{recurring.Id}:{scheduledFor:O}";
