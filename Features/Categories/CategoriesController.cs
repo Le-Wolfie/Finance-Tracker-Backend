@@ -36,4 +36,22 @@ public sealed class CategoriesController : ControllerBase
         var result = await _categoriesService.GetAsync(userId, cancellationToken);
         return Ok(result);
     }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(CategoryResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CategoryResponseDto>> Update([FromRoute] Guid id, [FromBody] UpdateCategoryRequestDto request, CancellationToken cancellationToken)
+    {
+        var userId = _userContextService.GetUserId();
+        var result = await _categoriesService.UpdateAsync(id, request, userId, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var userId = _userContextService.GetUserId();
+        await _categoriesService.DeleteAsync(id, userId, cancellationToken);
+        return NoContent();
+    }
 }

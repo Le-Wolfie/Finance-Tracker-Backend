@@ -10,6 +10,9 @@ public sealed class Transaction : BaseEntity
     public Guid? CategoryId { get; set; }
     public decimal Amount { get; set; }
     public TransactionType Type { get; set; }
+    public TransactionExecutionMode ExecutionMode { get; set; } = TransactionExecutionMode.ApplyImmediately;
+    public bool IsBalanceApplied { get; set; } = true;
+    public DateTime? BalanceAppliedAt { get; set; }
     public DateTime Date { get; set; }
     public string Description { get; set; } = string.Empty;
 

@@ -20,6 +20,16 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(x => x.ExecutionMode)
+            .HasConversion<string>()
+            .HasMaxLength(30)
+            .IsRequired();
+
+        builder.Property(x => x.IsBalanceApplied)
+            .IsRequired();
+
+        builder.Property(x => x.BalanceAppliedAt);
+
         builder.Property(x => x.Description)
             .HasMaxLength(500);
 

@@ -17,6 +17,9 @@ public sealed class UpdateTransactionRequestValidator : AbstractValidator<Update
         RuleFor(x => x.Type)
             .IsInEnum();
 
+        RuleFor(x => x.ExecutionMode)
+            .IsInEnum();
+
         RuleFor(x => x.Description)
             .MaximumLength(500);
 

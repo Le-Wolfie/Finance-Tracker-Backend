@@ -9,4 +9,5 @@ public interface ITransactionsService
     Task<TransactionResponseDto> UpdateAsync(Guid id, UpdateTransactionRequestDto request, Guid userId, CancellationToken cancellationToken);
     Task<PagedResultDto<TransactionResponseDto>> GetAsync(TransactionFilterDto filter, Guid userId, CancellationToken cancellationToken);
     Task DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken);
+    Task<int> ApplyDueTransactionsAsync(CancellationToken cancellationToken);
 }
