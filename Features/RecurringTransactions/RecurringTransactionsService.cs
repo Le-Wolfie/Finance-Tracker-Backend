@@ -122,9 +122,11 @@ public sealed class RecurringTransactionsService : IRecurringTransactionsService
 
         if (request.IsActive && scheduleChanged)
         {
-            recurring.NextExecutionDate = request.StartDate <= DateTime.UtcNow
-                ? DateTime.UtcNow
-                : request.StartDate;
+            recurring.NextExecutionDate = CalculateNextOccurrenceFromStartDate(
+                request.StartDate,
+                request.Frequency,
+                request.IntervalDays,
+                DateTime.UtcNow);
         }
         else
         {
@@ -314,6 +316,39 @@ public sealed class RecurringTransactionsService : IRecurringTransactionsService
             RecurrenceFrequency.CustomIntervalDays => fromDate.AddDays(recurring.IntervalDays ?? 1),
             _ => fromDate.AddMonths(1)
         };
+    }
+
+    private static DateTime CalculateNextOccurrenceFromStartDate(
+        DateTime startDate,
+        RecurrenceFrequency frequency,
+        int? intervalDays,
+        DateTime now)
+    {
+        // If start date is in the future, return it as-is
+        if (startDate > now)
+        {
+            return startDate;
+        }
+
+        // Start from the start date and calculate the next occurrence after "now"
+        var next = startDate;
+        var maxIterations = 1000; // Safety limit to prevent infinite loops
+        var iterations = 0;
+
+        while (next <= now && iterations < maxIterations)
+        {
+            next = frequency switch
+            {
+                RecurrenceFrequency.Daily => next.AddDays(1),
+                RecurrenceFrequency.Weekly => next.AddDays(7),
+                RecurrenceFrequency.Monthly => next.AddMonths(1),
+                RecurrenceFrequency.CustomIntervalDays => next.AddDays(intervalDays ?? 1),
+                _ => next.AddMonths(1)
+            };
+            iterations++;
+        }
+
+        return next;
     }
 
     private static bool ShouldStopRecurring(RecurringTransaction recurring)
